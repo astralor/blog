@@ -25,7 +25,7 @@ services:
       - ./data/waline:/app/data
     environment:
       - IPADDR=0.0.0.0
-      - SQLITE_PATH=/app/data/waline.sqlite
+      - SQLITE_PATH=/app/data
       - SITE_NAME=Astralor
       - SITE_URL=https://astralor.com
       - SECURE_DOMAINS=astralor.com,comment.astralor.com
