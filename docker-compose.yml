@@ -1,30 +1,36 @@
 services:
   blog:
-    build: .
-    image: ghcr.io/astralor/blog:latest
     container_name: astralor-blog
-    restart: unless-stopped
+    image: ghcr.io/astralor/blog:latest
+    network_mode: bridge
     ports:
-      - "8080:80"
-    networks:
-      - web
+      - 8080:80
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   waline:
-    image: lizheming/waline:latest
     container_name: astralor-waline
-    restart: unless-stopped
+    image: lizheming/waline:latest
+    network_mode: bridge
     ports:
-      - "8360:8360"
+      - 8360:8360
     volumes:
+      - /etc/localtime:/etc/localtime:ro
       - ./data/waline:/app/data
     environment:
       - SQLITE_PATH=/app/data/waline.sqlite
       - SITE_NAME=Astralor
       - SITE_URL=https://astralor.com
       - SECURE_DOMAINS=astralor.com
-    networks:
-      - web
-
-networks:
-  web:
-    external: true
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8360"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
