@@ -1,7 +1,7 @@
 services:
   blog:
     container_name: astralor-blog
-    image: ghcr.io/astralor/blog:latest
+    build: ./repo
     network_mode: bridge
     ports:
       - 8080:80
