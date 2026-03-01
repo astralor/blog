@@ -52,5 +52,5 @@ jobs:
             WALINE_PORT=${{ secrets.WALINE_PORT }}
             ENVEOF
             docker compose pull
-            docker compose up -d
+            docker compose up -d --force-recreate
             docker image prune -f
