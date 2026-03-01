@@ -1,0 +1,30 @@
+services:
+  blog:
+    build: .
+    image: ghcr.io/astralor/blog:latest
+    container_name: astralor-blog
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - web
+
+  waline:
+    image: lizheming/waline:latest
+    container_name: astralor-waline
+    restart: unless-stopped
+    ports:
+      - "8360:8360"
+    volumes:
+      - ./data/waline:/app/data
+    environment:
+      - SQLITE_PATH=/app/data/waline.sqlite
+      - SITE_NAME=Astralor
+      - SITE_URL=https://astralor.com
+      - SECURE_DOMAINS=astralor.com
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

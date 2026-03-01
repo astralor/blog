@@ -1,0 +1,73 @@
+/* TOC 共享样式 */
+
+/* TOC 滚动容器 */
+.toc-scroll-container {
+	overflow-y: auto;
+	overflow-x: hidden;
+	-webkit-overflow-scrolling: touch;
+	scroll-behavior: smooth;
+}
+
+/* TOC 内容容器 */
+.toc-content {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	position: relative;
+	overflow: visible;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	contain: layout;
+	align-items: flex-start;
+}
+
+/* TOC 链接样式 */
+.toc-content a {
+	display: flex;
+	align-items: center;
+	text-decoration: none;
+	color: inherit;
+	border-radius: 0.75rem;
+	transition: all 0.2s ease;
+	width: 100%;
+	min-width: 0;
+	flex-shrink: 0;
+	max-width: 100%;
+	overflow: hidden;
+	box-sizing: border-box;
+	position: relative;
+}
+
+.toc-content a:hover {
+	background: var(--toc-btn-hover);
+}
+
+/* 文本内容防溢出 */
+.toc-content a div:last-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+	flex: 1;
+	max-width: calc(100% - 2rem);
+	box-sizing: border-box;
+}
+
+/* 徽章容器固定宽度 */
+.toc-content a div:first-child {
+	flex-shrink: 0;
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+/* 活动指示器基础样式 */
+.toc-active-indicator {
+	position: absolute;
+	left: 0;
+	right: 0;
+	background: var(--toc-btn-hover);
+	border-radius: 0.75rem;
+	transition: all 0.2s ease;
+	z-index: -1;
+}
