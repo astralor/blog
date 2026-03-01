@@ -28,7 +28,7 @@ services:
       - SQLITE_PATH=/app/data/waline.sqlite
       - SITE_NAME=Astralor
       - SITE_URL=https://astralor.com
-      - SECURE_DOMAINS=astralor.com
+      - SECURE_DOMAINS=astralor.com,comment.astralor.com
     restart: always
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8360').then(r=>{process.exit(r.ok?0:1)}).catch(()=>process.exit(1))"]
