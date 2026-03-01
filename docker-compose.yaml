@@ -24,6 +24,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ./data/waline:/app/data
     environment:
+      - IPADDR=0.0.0.0
       - SQLITE_PATH=/app/data/waline.sqlite
       - SITE_NAME=Astralor
       - SITE_URL=https://astralor.com
