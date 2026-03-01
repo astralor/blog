@@ -51,7 +51,9 @@ jobs:
             cat > .env << ENVEOF
             BLOG_PORT=${{ secrets.BLOG_PORT }}
             WALINE_PORT=${{ secrets.WALINE_PORT }}
+            JWT_TOKEN=${{ secrets.JWT_TOKEN }}
             ENVEOF
+            rm -f data/waline/waline.sqlite
             docker compose pull
             docker compose up -d --force-recreate
             docker image prune -f
