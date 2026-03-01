@@ -53,6 +53,11 @@ jobs:
             WALINE_PORT=${{ secrets.WALINE_PORT }}
             JWT_TOKEN=${{ secrets.JWT_TOKEN }}
             ENVEOF
+            mkdir -p data/waline
+            if [ ! -s data/waline/waline.sqlite ]; then
+              curl -sL "https://raw.githubusercontent.com/walinejs/waline/main/assets/waline.sqlite" -o data/waline/waline.sqlite
+              echo "Waline database initialized"
+            fi
             docker compose pull
             docker compose up -d --force-recreate
             docker image prune -f
