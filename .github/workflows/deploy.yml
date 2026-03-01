@@ -47,6 +47,7 @@ jobs:
           script_stop: true
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
+            git pull origin main
             cat > .env << ENVEOF
             BLOG_PORT=${{ secrets.BLOG_PORT }}
             WALINE_PORT=${{ secrets.WALINE_PORT }}
