@@ -4,7 +4,7 @@ services:
     image: ghcr.io/astralor/blog:latest
     network_mode: bridge
     ports:
-      - 8080:80
+      - "${BLOG_PORT:-8080}:80"
     volumes:
       - /etc/localtime:/etc/localtime:ro
     restart: always
@@ -19,7 +19,7 @@ services:
     image: lizheming/waline:latest
     network_mode: bridge
     ports:
-      - 8360:8360
+      - "${WALINE_PORT:-8360}:8360"
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./data/waline:/app/data

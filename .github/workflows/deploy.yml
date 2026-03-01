@@ -46,6 +46,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
-            docker compose pull blog
-            docker compose up -d blog
+            cat > .env << ENVEOF
+            BLOG_PORT=${{ secrets.BLOG_PORT }}
+            WALINE_PORT=${{ secrets.WALINE_PORT }}
+            ENVEOF
+            docker compose pull
+            docker compose up -d
             docker image prune -f
