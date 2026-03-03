@@ -1,4 +1,4 @@
-![Astralor x Xiaohan](https://i.imglab.cc/2026/03/03/about-page-hero-astralor-x-xiaohanb278d906c17dfc13.png)
+![Astralor x Xiaohan](./images/about-hero.png)
 
 # About Me
 
