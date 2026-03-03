@@ -9,7 +9,7 @@ export const profileConfig: ProfileConfig = {
 	avatar: "assets/images/avatar.png",
 
 	// 名字
-	name: "Astralor",
+	name: "张昊辰",
 
 	// 个人签名
 	bio: "从基础设施到 AI 产品，记录想法与进化",
