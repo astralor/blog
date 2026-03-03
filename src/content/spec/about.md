@@ -1,3 +1,5 @@
+![Astralor x Xiaohan](https://i.imglab.cc/2026/03/03/about-page-hero-astralor-x-xiaohanb278d906c17dfc13.png)
+
 # About Me
 
 我是 **张昊辰**（Astralor），~~工程师~~ AI 产品经理。
