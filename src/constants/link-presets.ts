@@ -10,37 +10,37 @@ export const LinkPresets: { [key in LinkPreset]: NavBarLink } = {
 	},
 	[LinkPreset.About]: {
 		name: i18n(I18nKey.about),
-		url: "/about/",
+		url: "/about.html",
 		icon: "material-symbols:person",
 	},
 	[LinkPreset.Archive]: {
 		name: i18n(I18nKey.archive),
-		url: "/archive/",
+		url: "/archive.html",
 		icon: "material-symbols:archive",
 	},
 	[LinkPreset.Friends]: {
 		name: i18n(I18nKey.friends),
-		url: "/friends/",
+		url: "/friends.html",
 		icon: "material-symbols:group",
 	},
 	[LinkPreset.Sponsor]: {
 		name: i18n(I18nKey.sponsor),
-		url: "/sponsor/",
+		url: "/sponsor.html",
 		icon: "material-symbols:favorite",
 	},
 	[LinkPreset.Guestbook]: {
 		name: i18n(I18nKey.guestbook),
-		url: "/guestbook/",
+		url: "/guestbook.html",
 		icon: "material-symbols:chat",
 	},
 	[LinkPreset.Bangumi]: {
 		name: i18n(I18nKey.bangumi),
-		url: "/bangumi/",
+		url: "/bangumi.html",
 		icon: "material-symbols:movie",
 	},
 	[LinkPreset.Gallery]: {
 		name: i18n(I18nKey.gallery),
-		url: "/gallery/",
+		url: "/gallery.html",
 		icon: "material-symbols:photo-library",
 	},
 };
