@@ -4,7 +4,7 @@ published: 2026-03-03
 description: "做 Agentic AI 产品，功能可以很快，效果却快不起来。记录我在 AI 写作产品中遇到的结构性矛盾，以及对这个问题的一些不成熟的思考。"
 tags: ["AI 产品", "Agentic AI", "效果优化", "产品思考"]
 category: "产品思考"
-image: "./images/dual-helix-cover.png"
+image: "./images/dual-helix-cover.jpg"
 ---
 
 ## 一个逐渐清晰的问题
@@ -16,8 +16,6 @@ image: "./images/dual-helix-cover.png"
 但我逐渐注意到一个现象：**产品的功能在变强，效果优化的推进却在变慢。**
 
 起初我以为是效率问题，后来才意识到这是一个结构性矛盾——功能和效果这两条线，天然就跑在不同的速度上，而且功能跑得越快，效果这边的处境就越难。
-
-![功能与效果的速度差：一条是高速疾驰的蓝色光轨，另一条是精雕细琢的匠人之手](./images/dual-helix-speed-gap.png)
 
 ## 为什么速度差是结构性的
 
@@ -47,11 +45,9 @@ arXiv 上有篇研究 Cursor 的论文（[Speed at the Cost of Quality](https://
 
 所以效果团队面对的不只是「追赶速度差」，而是**在一个不断膨胀的问题空间里，用一个天然更慢的方法论去工作**。
 
-![每一个功能变更都是投入水面的石子，涟漪互相叠加，交汇处产生不可预测的变化](./images/dual-helix-ripple.png)
+![每一个新功能都在扩展迷宫的边界，而效果优化需要在这个不断生长的迷宫中找到出路](./images/dual-helix-maze.jpg)
 
 ## 被稀释的效果工作
-
-![效果团队在三个方向之间反复横跳：优化、归因、反馈](./images/dual-helix-three-way.png)
 
 理论上，效果团队的工作应该很纯粹：分析 badcase，调优提示词，提升输出质量。
 
@@ -88,6 +84,8 @@ arXiv 上有篇研究 Cursor 的论文（[Speed at the Cost of Quality](https://
 ## 一些初步的思考
 
 问题梳理到这里，我还没有成熟的解法，但有一些方向性的思考。
+
+![复杂不会消失，但可以被照亮——在纠缠的系统中找到可导航的方向](./images/dual-helix-lighthouse.jpg)
 
 ### 归因是第一个要解决的问题
 
