@@ -38,7 +38,7 @@ export default defineConfig({
 	site: siteConfig.site_url,
 
 	base: "/",
-	trailingSlash: "always",
+	trailingSlash: "never",
 
 	// 图像优化配置
 	image: {
