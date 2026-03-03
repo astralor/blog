@@ -39,9 +39,6 @@ export default defineConfig({
 
 	base: "/",
 	trailingSlash: "never",
-	build: {
-		format: "file",
-	},
 
 	// 图像优化配置
 	image: {
