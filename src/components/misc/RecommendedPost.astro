@@ -120,7 +120,7 @@ function renderRandomPosts() {
     var base = apiUrl.replace(/\/api\/allPostMeta\.json$/, '');
 
     picked.forEach(function(post, idx) {
-      var href = base + '/posts/' + post.id + '.html';
+      var href = base + '/posts/' + post.id;
 
       var a = document.createElement('a');
       a.href = href;
