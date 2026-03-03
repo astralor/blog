@@ -7,7 +7,7 @@ export const announcementConfig: AnnouncementConfig = {
 	link: {
 		enable: true,
 		text: "了解更多",
-		url: "/about/",
+		url: "/about.html",
 		external: false,
 	},
 };
