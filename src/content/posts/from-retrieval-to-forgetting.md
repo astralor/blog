@@ -4,6 +4,7 @@ published: 2026-03-05
 description: "给 AI 建了一套完整的记忆搜索系统，87% 的时间它选择不用。也许 AI Agent 记忆系统真正需要的不是更好的检索，而是更好的遗忘。"
 tags: ["AI Agent", "记忆系统", "OpenClaw", "Claude Code", "RAG", "产品思考"]
 category: "AI 思考"
+image: "./images/memory-forgetting-hero.png"
 ---
 
 > 我给 AI 配了一套完整的记忆搜索系统——向量索引、混合检索、语义搜索——结果 87% 的对话里，它根本不用。
@@ -25,6 +26,8 @@ OpenClaw 社区里也有类似的声音。有用户在 [GitHub Discussion](https
 这不是配置问题，是架构假设的问题。
 
 ## 两条路线：全量 vs 极简
+
+![两条路线：复杂的 RAG 管线 vs 简单的笔记本](./images/memory-two-routes.png)
 
 当前 AI Agent 的记忆系统大致有两个流派，分别代表了两种截然不同的设计哲学。
 
@@ -118,6 +121,8 @@ Luo 等人在 Zero-RAG[^4] 中研究了一个被广泛忽视的问题：**知识
 这个增量极薄。薄到 Claude Code 认为 200 行就够了。
 
 ## 人类怎么遗忘
+
+![人类记忆整合：信息涌入，大部分消散，框架留存](./images/memory-human-consolidation.png)
 
 这个判断不是凭空来的。它和认知科学对人类记忆的理解有着深层的呼应。
 
