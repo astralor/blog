@@ -4,7 +4,7 @@ published: 2026-03-06
 description: "从 GPT-5.4 的 reasoning 能力聊起，顺着 OpenClaw 的 thinking 配置一路追到了真实请求体——中间经历的每一层翻译，都比想象中多。"
 tags: ["OpenClaw", "Claude", "OpenAI", "AI Agent", "Reasoning", "工程实践", "产品思考"]
 category: "AI 思考"
-image: ""
+image: "./images/thinking-semantics-hero.png"
 ---
 
 > 一个 `thinkingDefault` 配置项，在不同模型上，经过框架的多层翻译，最终落到了三种不同的行为。
@@ -36,6 +36,8 @@ OpenClaw 声明支持 Claude 4.6 的 adaptive thinking，那发给 Anthropic 的
 跟 AI 打交道久了，有一个习惯会变得越来越本能：中间结论如果不验证到底，很可能就是幻觉。不只是模型会这样——Anthropic 在 Claude's Character 文档[^6]里承认过模型面对不确定信息时的这种倾向，OpenAI 的 GPT-4 Technical Report[^7] 也把 hallucination 列为核心局限，Huang 等人对 LLM 幻觉问题做过系统性的梳理[^8]。人读代码、读文档的时候，也会基于片段信息构建出"看起来对"的理解。
 
 所以我们决定直接去看真实的请求体。OpenClaw 支持通过环境变量 `OPENCLAW_ANTHROPIC_PAYLOAD_LOG=1` 打开 Anthropic 的 payload 日志，开启之后重启网关，跑几轮对话，然后去读日志文件就能看到框架实际发给 Anthropic 的完整请求。
+
+![配置信号穿过多层翻译，出来时已经不是原来的颜色](./images/thinking-translation-gap.png)
 
 验证的结果跟预期不太一样。对于 Claude 4.6，当 `thinkingDefault` 设成 `adaptive` 时，实际发出去的请求体是这样的：
 
@@ -122,6 +124,8 @@ GPT-5.4 今天刚发布，还没有被加入这份白名单，所以框架不认
 下一个 OpenClaw 版本大概率会把 GPT-5.4 加进白名单，这只是跟进新模型发布的节奏问题。Claude 后续版本也可能会扩展 thinking 的类型和粒度。甚至整个 thinking 抽象本身，都可能在某次大版本里被重新设计。
 
 ## 这层翻译想解决什么
+
+![多个复杂的 Provider API 面板，通过统一翻译层，汇聚成一个简单的旋钮](./images/thinking-ai-equality.png)
 
 追到这里，技术层面的事实已经清楚了。但让我觉得更值得琢磨的是背后的设计意图：为什么 OpenClaw 要做这层看不见的翻译？
 
