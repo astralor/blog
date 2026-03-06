@@ -1,50 +1,49 @@
 ---
 title: "OpenClaw 的 thinking 设计：一次配置语义的追踪与产品思考"
 published: 2026-03-06
-description: "从 GPT-5.4 的 reasoning 能力聊起，顺着 OpenClaw 的 thinking 配置一路追到了 Anthropic 的真实请求体——中间经历的每一层翻译，都比想象中多。"
+description: "从 GPT-5.4 的 reasoning 能力聊起，顺着 OpenClaw 的 thinking 配置一路追到了真实请求体——中间经历的每一层翻译，都比想象中多。"
 tags: ["OpenClaw", "Claude", "OpenAI", "AI Agent", "Reasoning", "工程实践", "产品思考"]
 category: "AI 思考"
 image: ""
 ---
 
-> 一个 `thinkingDefault` 配置项，在不同模型上，通过框架的多层翻译，最终落到了三种不同的行为。而这种设计背后，藏着一个值得琢磨的产品选择。
+> 一个 `thinkingDefault` 配置项，在不同模型上，经过框架的多层翻译，最终落到了三种不同的行为。
 
-## 起因：GPT-5.4 的 reasoning
+## 起因
 
-今天 OpenAI [发布了 GPT-5.4](https://openai.com/index/introducing-gpt-5-4/)。我和我的 OpenClaw 助手在聊它和 Claude 4.6 的能力差异——benchmark、定价、生态位。
+今天 OpenAI [发布了 GPT-5.4](https://openai.com/index/introducing-gpt-5-4/)。我和我的 OpenClaw 助手在聊它和 Claude 4.6 的能力差异——benchmark、定价、各自的生态位。
 
-GPT-5.4 有个引起注意的地方：它在 reasoning 上的处理方式跟之前的 GPT 系列不太一样。官方描述里提到，GPT-5.4 Thinking 会在回答前先给出思考计划，而且支持在推理过程中被用户打断和调整方向[^1]。这和 Claude 4.6 的 [adaptive thinking](https://docs.anthropic.com/en/docs/build-with-claude/adaptive-thinking) 走的是不同的路线——后者更侧重让模型自主决定何时需要深度思考、何时可以快速回答。
+GPT-5.4 有个有意思的地方：它的 reasoning 处理方式跟之前的 GPT 系列不太一样。官方提到 GPT-5.4 Thinking 会在回答前先给出思考计划，而且支持用户在推理过程中打断和调整方向[^1]。这和 Claude 4.6 的 [adaptive thinking](https://docs.anthropic.com/en/docs/build-with-claude/adaptive-thinking) 走的是不同的路线——后者更侧重让模型自主判断何时需要深度思考、何时快速回答。
 
-两种不同的 thinking 设计，在 [OpenClaw](https://github.com/openclaw/openclaw) 里最终是怎么被统一处理的？
+两种不同的 thinking 设计，在 [OpenClaw](https://github.com/openclaw/openclaw) 里最终是怎么被统一处理的？聊着聊着，这个好奇自然就冒出来了。
 
-这不是一个刻意提出的问题，更像是聊着聊着自然冒出来的好奇。因为就在四天前（3 月 2 日），我刚把 OpenClaw 从 2026.2.26 升级到 [2026.3.1](https://github.com/openclaw/openclaw/blob/main/CHANGELOG.md)，这个版本把 Claude 4.6 的默认 thinking level 设成了 `adaptive`[^2]。升级时我顺手移除了之前全局覆盖的 `thinkingDefault: "high"`，让配置回到 Claude 4.6 官方推荐的最佳实践。
+四天前（3 月 2 日），我刚把 OpenClaw 从 2026.2.26 升级到了 [2026.3.1](https://github.com/openclaw/openclaw/blob/main/CHANGELOG.md)。这个版本正式把 Claude 4.6 的默认 thinking level 设成了 `adaptive`[^2]。升级的时候，根据 OpenClaw 新版本的支持和 Anthropic 官方的推荐，我把之前全局覆盖的 `thinkingDefault: "high"` 改成了 `adaptive`。当时没想太多——官方推荐的，框架也跟上了，按推荐配就是了。
 
-Anthropic 的文档推荐 adaptive，OpenClaw 的 [thinking 文档](https://docs.openclaw.ai/tools/thinking) 也明确说已经适配了这个模式。从配置角度看，一切都已经就位。
+Anthropic 的文档推荐 adaptive，OpenClaw 的 [thinking 文档](https://docs.openclaw.ai/tools/thinking) 说已经适配了。从配置角度看，一切到位。
 
-## 直觉上的理解
+## 按一般理解
 
-如果你用过 OpenClaw 或者类似的 Agent 框架，大概会觉得事情到这里就结束了：
+配完 `adaptive`，按一般理解，事情到这里就结束了。
 
-- `thinkingDefault` 设成 `adaptive`
-- OpenClaw 说支持 Claude 4.6 的 adaptive
-- 那发给 Anthropic 的请求就是 `thinking.type = adaptive`
-- effort 没有额外配置，自然走 Claude 的官方默认值
+OpenClaw 声明支持 Claude 4.6 的 adaptive thinking，那发给 Anthropic 的请求应该就是 `thinking.type = adaptive`。effort 没有额外配置，自然由 Claude 按官方默认值处理。
 
-很合理的推理。
+看起来没什么好操心的。
 
-不过，OpenClaw 的架构我还算熟悉。它不是一个简单的 API 转发层——所有模型用的是同一套统一的 thinking 配置（`off/minimal/low/medium/high/xhigh/adaptive`），这意味着框架一定在中间做了某种兼容翻译。而且这种翻译是静默的——没有报错，没有告警，你感知不到中间发生了什么。
+但 OpenClaw 的架构我还算熟悉。它不是一个简单的 API 转发层——你会注意到所有模型用的是同一套 thinking 配置：`off/minimal/low/medium/high/xhigh/adaptive`。Claude 和 GPT 的 reasoning 机制完全不同，却共用一个旋钮。这说明框架一定在中间做了某种翻译。
 
-所以真正的问题是：这层翻译具体做了什么？
+而这种翻译是静默的。没有日志告诉你"我帮你把 adaptive 翻译成了 xxx"。你感知不到中间发生了什么。
 
-## 追到底
+## 追下去看
 
-跟 AI 打交道久了，有一个经验会变得越来越本能：**中间结论如果不验证到底，极有可能是幻觉。**
+跟 AI 打交道久了，有一个习惯会变得越来越本能：**中间结论不验证到底，很可能就是幻觉。**
 
-Anthropic 在 [Claude's Character](https://www.anthropic.com/research/claude-character) 文档里承认过，模型在面对不确定信息时会倾向于给出看起来合理但未经验证的回答。OpenAI 的 [GPT-4 Technical Report](https://arxiv.org/abs/2303.08774) 也把 hallucination 列为核心局限。Huang 等人在 [A Survey on Hallucination in Large Language Models](https://arxiv.org/abs/2311.05232) 里更系统地梳理过这个问题。不只是模型会幻觉——人读代码、读文档，也会基于片段信息构建出"看起来对"的理解。
+Anthropic 在 [Claude's Character](https://www.anthropic.com/research/claude-character) 文档里承认过，模型面对不确定信息时倾向于给出看起来合理但未经验证的回答。OpenAI 的 [GPT-4 Technical Report](https://arxiv.org/abs/2303.08774) 也把 hallucination 列为核心局限。Huang 等人在 [A Survey on Hallucination in Large Language Models](https://arxiv.org/abs/2311.05232) 里系统梳理过这个问题。不只是模型会幻觉——人读代码、读文档，也会基于片段信息构建出"看起来对"的理解。
 
-所以我们打开了 Anthropic 的 payload log（环境变量 `OPENCLAW_ANTHROPIC_PAYLOAD_LOG=1`），重启网关，直接去看真实请求体。
+所以我们直接去看真实请求体。
 
-对于 Claude 4.6，当 `thinkingDefault` 设成 `adaptive` 时，实际发出去的是：
+OpenClaw 支持通过环境变量 `OPENCLAW_ANTHROPIC_PAYLOAD_LOG=1` 打开 Anthropic 的 payload 日志。开了之后重启网关，跑几轮对话，然后去读日志文件。
+
+实际验证的结果是——对于 Claude 4.6，当 `thinkingDefault` 设成 `adaptive` 时，发出去的请求体长这样：
 
 ```json
 {
@@ -55,9 +54,11 @@ Anthropic 在 [Claude's Character](https://www.anthropic.com/research/claude-cha
 
 `thinking.type` 确实是 `adaptive`。但 `effort` 被显式设成了 `medium`。
 
-这跟直觉上的理解不一样。Anthropic 的文档写的是：*"At the default effort level (high), Claude almost always thinks."*[^3] 也就是说，如果不传 effort，Claude 的默认行为是 `high`。但 OpenClaw 并没有"不传"——它显式传了 `medium`。
+这跟前面"自然走 Claude 官方默认值"的理解不一样。Anthropic 的文档写的是：*"At the default effort level (high), Claude almost always thinks."*[^3] 如果不传 effort，Claude 的默认行为是 `high`。但 OpenClaw 传了——而且传的是 `medium`。
 
-回到代码里看，逻辑很清楚。Pi agent（OpenClaw 内置的 Agentic 核心，负责模型调度和请求组装）有一个 `mapThinkingLevel()` 函数：
+关键是，**OpenClaw 的文档里完全没有提到这层映射。** 你找不到任何地方写着"adaptive 会被翻译成 effort=medium"。如果不去抓 payload，不去看源码，这个差异完全不可见。
+
+回到代码里，逻辑很清楚。Pi agent（OpenClaw 内置的 Agentic 核心，负责模型调度和请求组装）有一个 `mapThinkingLevel()` 函数：
 
 ```javascript
 // 源码位置：src/agents/pi-embedded-runner/utils.ts
@@ -68,26 +69,24 @@ function mapThinkingLevel(level) {
 }
 ```
 
-`adaptive` 被映射成了 `medium`，然后这个值作为 effort 传给了 Anthropic 的 API。
+`adaptive` 被映射成了 `medium`，这个值再作为 effort 传给 Anthropic API。
 
-## high 和 xhigh 呢
+## high 和 xhigh
 
-既然 `adaptive` 的行为明确了，接下来想看的是：`high` 在当前版本里会怎么处理？
+`adaptive` 的实际行为明确了，接下来自然要看另外两个档位。
 
-在 OpenClaw 2026.3.1 之前，`high` 的语义比较直白——开启思考能力，拉到最高。但 Claude 4.6 引入了 adaptive 接口之后，旧的 fixed budget 方式已经不再是推荐路径。那 OpenClaw 会把 `high` 翻译成什么？
+`high` 在 OpenClaw 之前版本里的语义比较直白——开启思考，能力拉满。到了 Claude 4.6 引入 adaptive 之后，旧的 fixed budget 已经不是推荐路径了。那 `high` 在新版本里最终变成什么？
 
-还是用 payload log 看：
+`xhigh` 更有意思。这个档位在 OpenAI 的体系里是有独立语义的——比 `high` 更强的 reasoning 级别。但 Claude 的 adaptive thinking 里没有对应的概念。它代表的是一个在当前 provider 不存在原生语义的配置值，框架必须做某种兼容处理。
 
-- `thinkingDefault = high` → `thinking.type=adaptive` + `output_config.effort=high`
-- `thinkingDefault = xhigh` → `thinking.type=adaptive` + `output_config.effort=high`
+一起测了。还是用 payload log，结果很干脆：
 
-`high` 和 `xhigh` 在 Claude 4.6 上落到了同一个请求。
+- `high` → `thinking.type=adaptive` + `output_config.effort=high`
+- `xhigh` → `thinking.type=adaptive` + `output_config.effort=high`
 
-这里 `xhigh` 值得单独说一下。这个档位在 OpenAI 的体系里是有独立语义的——比 `high` 更高的 reasoning 级别。但在 Claude 的 adaptive thinking 里，没有对应的原生概念。测它在 Claude 上的表现，本质上是在看框架遇到"目标 provider 不存在这个语义"时会怎么降级。
+在 Claude 4.6 上，`high` 和 `xhigh` 落到了同一个请求。`xhigh` 被静默降级到了 `high`。
 
-结果是：静默降到最高可用档。
-
-在今天这个版本下，Claude 4.6 的完整映射：
+完整的映射：
 
 - `adaptive` → `adaptive + medium`
 - `high` → `adaptive + high`
@@ -95,15 +94,17 @@ function mapThinkingLevel(level) {
 
 ## 回到 GPT-5.4
 
-看完 Claude，自然要回来看今天的主角。GPT-5.4 在全局 `xhigh` 配置下能正常使用吗？
+看完 Claude 的行为，自然要回来看今天的主角。GPT-5.4 在全局 `xhigh` 配置下能正常使用吗？
 
 切过去，OpenClaw 给了个提示：
 
 > Thinking level set to high (xhigh not supported for xxx-provider/gpt-5.4)
 
-被降成了 `high`。但同一个 provider 下的 `gpt-5.3-codex-spark`，`xhigh` 却正常。
+降成了 `high`。
 
-为什么？不是按 provider 判断的，而是按模型家族白名单：
+但同一个 provider 下的 `gpt-5.3-codex-spark`，`xhigh` 是正常的。同一个 provider，两个模型，一个支持一个不支持。
+
+翻了代码，原因是 OpenClaw 的 `xhigh` 支持不是按 provider 判断的，而是维护了一份模型家族白名单：
 
 ```javascript
 // 源码位置：src/thinking.ts
@@ -118,48 +119,45 @@ const XHIGH_MODEL_REFS = [
 ];
 ```
 
-GPT-5.4 今天刚发布，还没来得及被加入白名单。
+GPT-5.4 今天刚发布，还没有被加进去。
 
-所以同一个 `xhigh` 配置，在三个模型上的实际行为：
+所以同一个 `xhigh` 配置，三个模型，三种结果：
 
 - Claude 4.6 → `adaptive + high`
 - GPT-5.4 → 降级为 `high`
 - `gpt-5.3-codex-spark` → 真正的 `xhigh`
 
-下一个 OpenClaw 版本大概率会把 GPT-5.4 加进去——白名单跟进新模型发布，节奏上就是这样。Claude 后续版本也可能会扩展 thinking 的类型和粒度。甚至整个 thinking 抽象本身，都可能在某次大版本里被重新设计。
+下一个 OpenClaw 版本大概率会把 GPT-5.4 加进白名单——节奏上就是这样。Claude 后续版本可能会扩展 thinking 的类型和粒度。甚至整个 thinking 抽象本身，都可能在某次大版本里被重新设计。
 
 ## 这层翻译想解决什么
 
-到这里为止是追踪。接下来想聊的是：为什么 OpenClaw 要做这层看不见的翻译？
+追到这里，技术事实已经清楚了。但让我觉得更值得琢磨的是：为什么 OpenClaw 要做这层看不见的翻译？
 
 不同的模型 provider 有完全不同的 reasoning 接口——Anthropic 是 `thinking.type` + `output_config.effort`，OpenAI 是 `reasoning_effort`，有些模型只支持开/关，有些压根不支持 thinking。如果把这些差异全部暴露给用户，每换一个模型就要重新学一套参数，每升一次级就可能要改配置。
 
-OpenClaw 选了另一条路：用一个统一的 `thinkingDefault`（`off/minimal/low/medium/high/xhigh/adaptive`）覆盖所有模型，框架负责翻译。
+OpenClaw 选了另一条路：一个统一的旋钮 `thinkingDefault`，覆盖所有模型，框架在中间负责翻译。
 
-用户不需要知道 Anthropic 叫 `effort`、OpenAI 叫 `reasoning_effort`。不需要知道什么是 adaptive thinking、什么是 budget_tokens。只需要知道"high 比 medium 思考更深"。切模型的时候不用改配置，不支持的档位自动降级而不是报错。
+用户不需要知道 Anthropic 叫 `effort`、OpenAI 叫 `reasoning_effort`。不需要知道什么是 adaptive thinking、什么是 budget_tokens。只需要知道"high 比 medium 思考更深"。切模型不用改配置，不支持的档位自动降级而不是报错。
 
-这让我想到一个词：**能力普惠**。
+一个不了解 AI 技术细节的产品经理，和一个深入理解 Anthropic API 的工程师，面对的是同一个旋钮。
 
-一个不了解 AI 技术细节的产品经理，和一个深入理解 Anthropic API 的工程师，面对的是同一个旋钮。绝大部分场景下，这个旋钮够用了。框架把 provider 差异的复杂度吃掉了，用户只需要表达意图。
+这是一种 **AI 平权**。让不理解底层差异的人，也能用好这些能力。
 
-代价当然有——就是我们今天追踪的这些。当你需要精确控制时，这层翻译就变成了一道信息壁垒。你以为设的是 `xhigh`，实际可能是 `high`，甚至是 `medium`。不抓 payload 不看代码，完全感知不到。
+代价就是我们今天追踪的这些——当你需要精确控制时，这层翻译变成了信息壁垒。你以为设的是 `xhigh`，实际可能是 `high`，甚至是 `medium`。不抓 payload 不看代码，完全感知不到。
 
-好的框架应该让大多数人省心，同时为需要的人保留穿透的能力。从这次的经验看，OpenClaw 前者做到了，后者也没有堵死（payload log 可以抓，源码可以看），只是不太显眼。
+好的框架应该让大多数人省心，同时为需要的人保留穿透的能力。OpenClaw 前者做到了，后者也没有堵死——payload log 可以开，源码可以看——只是不太显眼。
 
-往更大的方向想，这种"统一抽象 + 智能降级"的模式，也许不只是 OpenClaw 的技术选择。在模型能力差异巨大的今天，怎么在不同 provider 之间为用户提供一致的体验，是整个 AI 基础设施层面都要面对的问题。OpenClaw 的做法是一种可能的方向：**用意图层替代参数层，让框架承担翻译的成本。**
+## 更大的问题
 
-## 方法比结论重要
+往更大的方向想，这种"统一抽象 + 智能降级"的设计，也许不只是一个框架的技术选择。
 
-这篇文章里的映射关系，大概率会在下一次 OpenClaw 更新后失效。
+在模型能力差异巨大的今天——Claude 有 adaptive thinking，GPT 有 reasoning effort，Gemini 有自己的一套——怎么在不同 provider 之间为用户提供一致的体验，是整个 AI 基础设施层面都在面对的问题。
 
-今天真正值得留下的，是以后遇到类似问题时的验证路径：
+OpenClaw 的做法是一种方向：**用意图层替代参数层，让框架承担翻译的成本。** 用户表达的是"我想要更深的思考"，不是"请把 `output_config.effort` 设成 `high`"。框架把意图翻译成各个 provider 能理解的具体参数。
 
-1. 看当前配置值
-2. 看框架的 thinking / capability 代码
-3. 看 allowlist 和 downgrade 逻辑
-4. 抓真实 payload 做终审
+这种设计的核心矛盾也很清楚：**抽象做得越好，大多数人越不需要关心细节；但也让需要关心细节的人越容易被蒙蔽。** 这不是一个可以被"解决"的矛盾——更像是一个需要被持续平衡的张力。
 
-在快速演化的 Agent 框架里，版本本身就是语义的一部分。与其记住某个配置项今天的映射结果，不如记住怎么重新验证它。
+今天的追踪没有给出这个张力的最优解。但至少让我更清楚地看到了这层抽象的形状：它在哪里帮了忙，又在哪里挡了路。
 
 ---
 
