@@ -1,13 +1,13 @@
 ---
-title: "拆解 OpenClaw 并发控制：为什么子 Agent 默认并发比主 Agent 还高？"
+title: "拆解 OpenClaw 并发模型：为什么 Subagent 默认并发比 Main 更高？"
 published: 2026-03-13
-description: "升级到 v2026.3.12 后，我们发现子 Agent 的默认并发上限是 8，而主 Agent 只有 4。第一眼看到这组数字时，我们还以为又挖到了一个 bug——直到把命令队列的源码翻了一遍。"
+description: "升级到 v2026.3.12 后，我们发现 Subagent 的默认并发上限是 8，而 Main 只有 4。第一眼看到这组数字时，我们还以为又挖到了一个 bug——直到把命令队列的源码翻了一遍。"
 tags: ["OpenClaw", "并发", "架构分析", "Agent", "工程实践"]
 category: "工程实践"
 image: "./images/concurrency-lanes-hero.png"
 ---
 
-> 上一篇文章里，我们追踪了一个让并发配置从未生效的隐藏 bug。这次并发终于生效了，但默认值又让我们愣了一下。
+> 上一篇文章里，我们追踪了一个让并发配置从未生效的隐藏 bug。这次并发终于开始按配置工作了，但默认值又让我们停下来多看了一眼。
 
 ## 一、sub 为什么比 main 大
 
@@ -30,8 +30,6 @@ agents:
 追完调用链之后才发现，**`maxConcurrent` 和 `subagents.maxConcurrent` 根本不是同一个并发池**。我们一开始把它理解成"父子并发关系"，但代码里的实现完全不是这么一回事——命令队列分成了三条独立的 lane（Main、Subagent、Cron），各自有自己的队列和并发上限，互不阻塞。
 
 后面追源码，就是把这件事一点点坐实的过程。
-
-![常见误解 vs 实际架构：左边是所有任务挤在一个池子里互相阻塞，右边是三个独立池各跑各的](./images/concurrency-lanes-comparison.png)
 
 ## 二、先画个图
 
@@ -56,11 +54,7 @@ Global Command Lanes
 
 三条 lane 各管各的，不共享计数器。
 
-![分层架构：请求进来先走 session 串行队列，再分流到三条独立的 global lane](./images/concurrency-lanes-architecture.png)
-
 ## 三、追源码
-
-![配置读取后路由到三条独立队列](./images/concurrency-lanes-flow.png)
 
 先看配置怎么读。dist 文件里有两个函数，各自独立读各自的配置项，默认值也分开写死：
 
