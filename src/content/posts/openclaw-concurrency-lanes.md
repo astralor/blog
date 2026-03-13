@@ -31,6 +31,8 @@ agents:
 
 后面追源码，就是把这件事一点点坐实的过程。
 
+![常见误解 vs 实际架构](./images/concurrency-lanes-comparison.png)
+
 ## 二、先画个图
 
 先把最终追出来的结构画出来，后面的源码追踪基本都在验证这张图：
@@ -54,7 +56,11 @@ Global Command Lanes
 
 三条 lane 各管各的，不共享计数器。
 
+![分层架构](./images/concurrency-lanes-architecture.png)
+
 ## 三、追源码
+
+![配置路由到三条独立队列](./images/concurrency-lanes-flow.png)
 
 先看配置怎么读。dist 文件里有两个函数，各自独立读各自的配置项，默认值也分开写死：
 
