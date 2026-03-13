@@ -4,6 +4,7 @@ published: 2026-03-13
 description: "升级到 v2026.3.12 后，我们发现子 Agent 的默认并发上限是 8，而主 Agent 只有 4。第一眼看到这组数字时，我们还以为又挖到了一个 bug——直到把命令队列的源码翻了一遍。"
 tags: ["OpenClaw", "并发", "架构分析", "Agent", "工程实践"]
 category: "工程实践"
+image: "./images/concurrency-lanes-hero.png"
 ---
 
 > 上一篇文章里，我们追踪了一个让并发配置从未生效的隐藏 bug。这次并发终于生效了，但默认值又让我们愣了一下。
@@ -30,6 +31,8 @@ agents:
 
 后面追源码，就是把这件事一点点坐实的过程。
 
+![常见误解 vs 实际架构：左边是所有任务挤在一个池子里互相阻塞，右边是三个独立池各跑各的](./images/concurrency-lanes-comparison.png)
+
 ## 二、先画个图
 
 先把最终追出来的结构画出来，后面的源码追踪基本都在验证这张图：
@@ -52,6 +55,8 @@ Global Command Lanes
 再往下看就会发现，这里有两层控制：同一个 session 内先串行保序（比如 Discord 一个频道里的消息不会乱序处理），不同 session 之间再按 Main / Subagent / Cron 三条 lane 去抢全局并发槽位。
 
 三条 lane 各管各的，不共享计数器。
+
+![分层架构：请求进来先走 session 串行队列，再分流到三条独立的 global lane](./images/concurrency-lanes-architecture.png)
 
 ## 三、追源码
 
@@ -80,7 +85,7 @@ setCommandLaneConcurrency(CommandLane.Main, resolveAgentMaxConcurrent(cfg));
 setCommandLaneConcurrency(CommandLane.Subagent, resolveSubagentMaxConcurrent(cfg));
 ```
 
-到这里其实已经能判断：这俩参数控制的不是同一个池子。
+到这里其实已经能判断：这俩参数控制的不是同一个并发池。
 
 再往下看 `setCommandLaneConcurrency` 的实现。lane 的状态存储在一个 `Map<string, LaneState>` 里，每条 lane 独立维护自己的并发计数：
 
