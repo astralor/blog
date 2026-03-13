@@ -13,25 +13,26 @@ image: "./images/concurrency-lanes-hero.png"
 
 ## 一、sub 为什么比 main 大
 
-上一篇文章里我们追踪了 OpenClaw 的一个并发状态隔离 bug——打包工具把一份运行时状态复制成了多份独立副本，导致 `maxConcurrent` 配多少都没用。我们提交了 Issue 和 PR，维护者在此基础上做了一次更全面的审计，把涉及十个模块的同类问题一起修了，随 v2026.3.12 发布。
+上一篇文章[《追踪 OpenClaw 的一个隐藏 bug：并发配置为什么从未生效》](/posts/openclaw-concurrency-bug)里我们追踪了 OpenClaw 的一个并发状态隔离 bug——打包工具把一份运行时状态复制成了多份独立副本，导致 `maxConcurrent` 配多少都没用。我们提交了 Issue 和 PR，维护者在此基础上做了一次更全面的审计，把涉及十个模块的同类问题一起修了，随 v2026.3.12 发布。
 
-升级确认完成后，我们检查了一下当前的并发配置。
+在把 OpenClaw 版本升级完成后，我们检查了一下当前的并发配置：
 
 ```yaml
 agents:
   defaults:
-    maxConcurrent: 10          # 我们手动调过，默认是 4
+    # 主 Agent 并发上限，默认 4
+    maxConcurrent: 10
     subagents:
-      maxConcurrent: 8         # 默认值
+      # 子 Agent 并发上限，默认 8
+      maxConcurrent: 8
+cron:
+  # 定时任务并发上限，默认 1
+  maxConcurrentRuns: 5
 ```
 
 `subagents.maxConcurrent` 默认是 8，主 Agent 的 `maxConcurrent` 默认只有 4。第一眼看到这组数字的时候，我们还以为又挖到了一个 bug——子 Agent 是从主 Agent 派生出来的，怎么并发上限反而更高？
 
-上次那个 bug 就是因为我们对代码的实际行为做了不正确的假设才追了三天，这次决定先看代码再下结论。
-
-追完调用链之后才发现，**`maxConcurrent` 和 `subagents.maxConcurrent` 根本不是同一个并发池**。我们一开始把它理解成"父子并发关系"，但代码里的实现完全不是这么一回事——命令队列分成了三条独立的 lane（Main、Subagent、Cron），各自有自己的队列和并发上限，互不阻塞。
-
-后面追源码，就是把这件事一点点坐实的过程。
+通过对 OpenClaw 源码追完调用链之后发现，**`maxConcurrent` 和 `subagents.maxConcurrent` 不是同一个并发池**。我们一开始把它理解成"父子并发关系"，但代码里的实现并不是这么一回事：**命令队列分成了三条独立的 lane（Main、Subagent、Cron），各自有自己的队列和并发上限，互不阻塞。**
 
 ![常见误解 vs 实际架构](./images/concurrency-lanes-comparison.png)
 
@@ -49,7 +50,7 @@ Session Lane (per-session serialization)
 Global Command Lanes
  ┌────────────────┬────────────────┬────────────────┐
  │ Main           │ Subagent       │ Cron           │
- │ default: 4     │ default: 8     │ default: 5     │
+ │ default: 4     │ default: 8     │ default: 1     │
  │ user messages  │ background AI  │ scheduled jobs │
  └────────────────┴────────────────┴────────────────┘
 ```
@@ -61,8 +62,6 @@ Global Command Lanes
 ![分层架构](./images/concurrency-lanes-architecture.png)
 
 ## 三、追源码
-
-![配置路由到三条独立队列](./images/concurrency-lanes-flow.png)
 
 先看配置怎么读。dist 文件里有两个函数，各自独立读各自的配置项，默认值也分开写死：
 
@@ -109,15 +108,18 @@ while (state.activeTaskIds.size < state.maxConcurrent && state.queue.length > 0)
 }
 ```
 
-任务怎么路由到对应 lane 的？子 Agent 运行时显式标记 `lane: AGENT_LANE_SUBAGENT`，普通请求不指定 lane 时 fallback 到 `main`，Cron 任务走 `CommandLane.Cron`。源码注释写得很直白：`"session lane + global lane"`。执行路径是先拿 session 锁，再抢 global lane 槽位：
+那任务怎么路由到对应 lane 的呢？
+
+子 Agent 运行时显式标记 `lane: AGENT_LANE_SUBAGENT`，普通请求不指定 lane 时 fallback 到 `main`，Cron 任务走 `CommandLane.Cron`。
+源码注释写得也很直白：`"session lane + global lane"`，执行路径是先拿 session 锁，再抢 global lane 槽位：
 
 ```javascript
 enqueueSession(() => enqueueGlobal(async () => { ... }))
 ```
 
-两层都拿到了，任务才开始跑。
+两层都拿到了，任务再开始跑。
 
-为了交叉验证，我们还让 Codex 独立追了一遍源码，最后落到的也是同一组函数和同一个 lane 结构。
+为了交叉验证我们的想法，我们还让 Codex 独立重新分析了一遍源码，最后落到的也是同一组函数和同一个 lane 结构。
 
 ## 四、这么拆的好处
 
@@ -141,17 +143,34 @@ enqueueSession(() => enqueueGlobal(async () => { ... }))
 
 **配置该怎么调。** 不同使用场景下侧重点不同：
 
-- **单人使用**：Main 2-3 就够了。日常峰值可能就 1-2 个 main + 1-2 个 subagent + 1-2 个 cron。
-- **多人 / 多频道**：Main 调到 4-6，确保不同用户的消息能并行处理。
-- **频繁使用子 Agent**（比如 ACP 模式委派编码任务）：Subagent 适当调高。
-- **大量定时任务**：Cron 从默认 5 往上调，避免密集触发时排队过久。
+- **单人使用**：`maxConcurrent` 设 2 就够了，同时活跃的对话很少超过两个。`subagents.maxConcurrent` 设 4，留出每个主 session 各 spawn 1-2 个子 Agent 的空间。`cron.maxConcurrentRuns` 保持默认 1，任务量不大时串行足够。
+- **多人 / 多频道**：`maxConcurrent` 调到 4-6，确保不同用户的消息能并行处理。`subagents.maxConcurrent` 保持默认 8，和 Main 槽位的典型比例刚好匹配。`cron.maxConcurrentRuns` 可以调到 2，避免定时任务排队影响响应。
+- **频繁使用子 Agent**（比如 ACP 模式委派编码任务）：`subagents.maxConcurrent` 可以自由调大到 12 甚至更高，这条 lane 独立于主 Agent，不会影响用户消息的响应。
+- **大量定时任务**：`cron.maxConcurrentRuns` 调到 3-5。不过在调高之前，建议先用 `staggerMs` 把任务触发时间错开——我们自己就是用 staggerMs 把十几个 cron job 分散到不同时间点，减少同一时刻的并发压力。即便如此，密集时段仍然需要一定的并行能力。
+
+以我们自己的配置为例（单人 + 多频道 + 重度 cron 用户）：
+
+```yaml
+agents:
+  defaults:
+    # 多频道并行，比默认 4 高
+    maxConcurrent: 10
+    subagents:
+      # 默认值，目前够用
+      maxConcurrent: 8
+cron:
+  # 十几个定时任务，配合 staggerMs 错开触发
+  maxConcurrentRuns: 5
+```
 
 **上一篇文章里的 bug 也有了更完整的解释。** 之前并发 bug 导致所有 lane 的 maxConcurrent 都退化成了 1——Main、Subagent、Cron 全部变成串行。任何一个慢任务都会堵住整条 lane，后面的级联超时就是这么来的。修复之后三条 lane 各自恢复了应有的并发上限，系统恢复正常不是因为某一个配置改对了，而是因为整个队列终于按设计跑起来了。
 
----
+## 六、结语
 
 一开始看到 `sub=8`、`main=4` 时，我们以为又抓到了一个配置 bug。真正把调用链追完之后才发现，问题不在默认值，而在我们下意识把它理解成了"父子并发"。OpenClaw 的实现不是这一套——是 session 串行 + 三条独立 lane 的并发隔离。
 
 搞清楚这一层以后，再去调 `maxConcurrent`、`subagents.maxConcurrent` 和 `cron.maxConcurrentRuns`，就不再是碰运气了。
+
+---
 
 *张昊辰 (Astralor) & 霄晗 (XiaoHan · OpenClaw Agent) · 2026.03.13*
