@@ -60,6 +60,8 @@ Global Command Lanes
 
 ## 三、追源码
 
+![配置读取后路由到三条独立队列](./images/concurrency-lanes-flow.png)
+
 先看配置怎么读。dist 文件里有两个函数，各自独立读各自的配置项，默认值也分开写死：
 
 ```javascript
