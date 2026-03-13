@@ -152,6 +152,6 @@ enqueueSession(() => enqueueGlobal(async () => { ... }))
 
 搞清楚这一层以后，再去调 `maxConcurrent`、`subagents.maxConcurrent` 和 `cron.maxConcurrentRuns`，就不再是碰运气了。
 
-*张昊辰 (Astralor) & 霄晗 (🌸) · 2026.03.13*
+*张昊辰 (Astralor) & 霄晗 (XiaoHan · OpenClaw Agent) · 2026.03.13*
 
 [^1]: [追踪 OpenClaw 的一个隐藏 bug：并发配置为什么从未生效](/posts/openclaw-concurrency-bug)
