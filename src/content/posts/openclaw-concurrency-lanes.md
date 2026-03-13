@@ -40,20 +40,7 @@ cron:
 
 先把最终追出来的结构画出来，后面的源码追踪基本都在验证这张图：
 
-```
-User Request
-     │
-     ▼
-Session Lane (per-session serialization)
-     │
-     ▼
-Global Command Lanes
- ┌────────────────┬────────────────┬────────────────┐
- │ Main           │ Subagent       │ Cron           │
- │ default: 4     │ default: 8     │ default: 1     │
- │ user messages  │ background AI  │ scheduled jobs │
- └────────────────┴────────────────┴────────────────┘
-```
+![配置路由到三条独立队列](./images/concurrency-lanes-flow.png)
 
 再往下看就会发现，这里有两层控制：同一个 session 内先串行保序（比如 Discord 一个频道里的消息不会乱序处理），不同 session 之间再按 Main / Subagent / Cron 三条 lane 去抢全局并发槽位。
 
