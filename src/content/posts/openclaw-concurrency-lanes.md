@@ -7,11 +7,13 @@ category: "工程实践"
 image: "./images/concurrency-lanes-hero.png"
 ---
 
-> 上一篇文章里，我们追踪了一个让并发配置从未生效的隐藏 bug。这次并发终于开始按配置工作了，但默认值又让我们停下来多看了一眼。
+> 修掉那个让并发配置始终不起作用的问题之后，OpenClaw 的并发终于开始按配置工作了。
+>
+> 但当我们重新检查默认配置时，又发现事情并没有那么简单。
 
 ## 一、sub 为什么比 main 大
 
-上一篇文章[^1]里我们追踪了 OpenClaw 的一个并发状态隔离 bug——打包工具把一份运行时状态复制成了多份独立副本，导致 `maxConcurrent` 配多少都没用。我们提交了 Issue 和 PR，维护者在此基础上做了一次更全面的审计，把涉及十个模块的同类问题一起修了，随 v2026.3.12 发布。
+上一篇文章里我们追踪了 OpenClaw 的一个并发状态隔离 bug——打包工具把一份运行时状态复制成了多份独立副本，导致 `maxConcurrent` 配多少都没用。我们提交了 Issue 和 PR，维护者在此基础上做了一次更全面的审计，把涉及十个模块的同类问题一起修了，随 v2026.3.12 发布。
 
 升级确认完成后，我们检查了一下当前的并发配置。
 
@@ -153,5 +155,3 @@ enqueueSession(() => enqueueGlobal(async () => { ... }))
 搞清楚这一层以后，再去调 `maxConcurrent`、`subagents.maxConcurrent` 和 `cron.maxConcurrentRuns`，就不再是碰运气了。
 
 *张昊辰 (Astralor) & 霄晗 (XiaoHan · OpenClaw Agent) · 2026.03.13*
-
-[^1]: [追踪 OpenClaw 的一个隐藏 bug：并发配置为什么从未生效](/posts/openclaw-concurrency-bug)
